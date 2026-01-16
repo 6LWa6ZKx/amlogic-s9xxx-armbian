@@ -511,9 +511,6 @@ CONFIG_DMI=y
 # CONFIG_SUSPEND is not set
 # CONFIG_HIBERNATION is not set
 
-CONFIG_SUSPEND=y
-CONFIG_HIBERNATION=y
-
 CONFIG_PM=y
 # CONFIG_PM_DEBUG is not set
 CONFIG_PM_CLK=y
@@ -9405,3 +9402,51 @@ CONFIG_MEMTEST=y
 #
 # end of Rust hacking
 # end of Kernel hacking
+
+
+# ============================================
+# 支持休眠模式的额外参数
+# ============================================
+CONFIG_SUSPEND=y
+CONFIG_PM_SLEEP=y
+CONFIG_HIBERNATION=y
+CONFIG_PM_DEBUG=y
+CONFIG_PM_SLEEP_DEBUG=y
+CONFIG_PM_AUTOSLEEP=y
+CONFIG_PM_WAKELOCKS=y
+CONFIG_PM_WAKELOCKS_LIMIT=100
+CONFIG_PM_WAKELOCKS_GC=y
+CONFIG_WAKELOCK=y
+CONFIG_ANDROID=y
+
+# CPU电源管理（保持现有并添加）
+CONFIG_CPU_IDLE_MULTIPLE_DRIVERS=y
+CONFIG_CPU_IDLE_GOV_LADDER=y
+CONFIG_CPU_IDLE_GOV_MENU=y
+
+# ============================================
+# RTC (Real Time Clock) 支持
+# ============================================
+CONFIG_RTC_WAKEUP_CLIENT=y
+
+# ============================================
+# 网络唤醒（WOL）相关
+# ============================================
+CONFIG_DWMAC_SOCFPGA=y
+
+# ============================================
+# Amlogic特定配置
+# ============================================
+CONFIG_AMLOGIC_PM=y
+CONFIG_AMLOGIC_GX_SUSPEND=y
+CONFIG_MESON_EE_PM=y
+CONFIG_MESON_GXBB_PM=y
+CONFIG_PM_MESON_GXBB=y
+CONFIG_ARM_MESON_SUSPEND=y
+
+# ACPI支持（即使使用设备树，有些电源管理功能可能需要）
+CONFIG_ACPI_DOCK=y
+CONFIG_ACPI_HOTPLUG_CPU=y
+CONFIG_ACPI_PROCESSOR_AGGREGATOR=y
+CONFIG_ACPI_SYSTEM_POWER_STATES_SUPPORT=y
+
