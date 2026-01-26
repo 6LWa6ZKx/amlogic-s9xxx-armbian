@@ -27,7 +27,8 @@ on:
         options:
           - all
           - first50
-          - from50
+          - range50_100
+          - range100_150
           - last20
           - a311d-oes_s922x-oes-plus_wxy-oect
           - nsy-g16-plus_nsy-g68-plus_bdy-g18-pro
@@ -53,6 +54,7 @@ on:
           - fine3399
           - firefly-rk3399
           - fmx1-pro
+          - fmx1-pro-b
           - gzpeite-p01
           - h28k
           - h66k
@@ -73,12 +75,16 @@ on:
           - lz-k3568
           - mrkaio-m68s
           - nanopc-t6
+          - nanopi-m5
+          - nanopi-r3s
           - nanopi-r5c
           - nanopi-r5s
           - nsy-g16-plus
           - nsy-g68-plus
+          - orangepi-3b
           - orangepi-5-plus
           - orangepi-5b
+          - orangepi-zero3
           - panther-x2
           - photonicat
           - r66s
@@ -181,6 +187,7 @@ on:
           - sv-33a6x
           - swan1-w28
           - sw799
+          - taram
           - tanix-tx6
           - tb-ls3399
           - tn3399
@@ -265,7 +272,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    if: ${{ github.event.repository.owner.id }} == ${{ github.event.sender.id }}
+    if: ${{ github.event.repository.owner.id == github.event.sender.id }}
 
     steps:
       - name: Checkout
@@ -319,7 +326,7 @@ jobs:
       - name: Download Armbian from Releases
         id: down
         working-directory: /builder
-        if: ${{ steps.init.outputs.status }} == 'success' && !cancelled()
+        if: ${{ steps.init.outputs.status == 'success' && !cancelled() }}
         run: |
           armbian_buildpath="build/output/images"
           [[ -d "${armbian_buildpath}" ]] || mkdir -p "${armbian_buildpath}"
@@ -366,7 +373,7 @@ jobs:
 
       - name: Rebuild Armbian [ ${{ inputs.set_release }} ]
         uses: 6LWa6ZKx/amlogic-s9xxx-armbian@main
-        if: ${{ steps.down.outputs.status }} == 'success' && !cancelled()
+        if: ${{ steps.down.outputs.status == 'success' && !cancelled() }}
         with:
           build_target: armbian
           armbian_path: build/output/images/*.img
@@ -380,7 +387,7 @@ jobs:
 
       - name: Upload Armbian image to Release
         uses: ncipollo/release-action@main
-        if: ${{ env.PACKAGED_STATUS }} == 'success' && !cancelled()
+        if: ${{ env.PACKAGED_STATUS == 'success' && !cancelled() }}
         with:
           tag: ${{ env.build_tag }}
           artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*

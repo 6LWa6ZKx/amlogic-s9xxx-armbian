@@ -335,10 +335,20 @@ create_partition() {
     # Backup the bootloader, necessary for system recovery
     [[ -d "/usr/lib/u-boot" ]] || mkdir -p /usr/lib/u-boot
     MYBOX_UBOOT="/usr/lib/u-boot/mybox-bootloader.img"
-    [[ -f "${MYBOX_UBOOT}" ]] && rm -f ${MYBOX_UBOOT}
-    echo -e "${INFO} Start backing up the default bootloader."
-    dd if="${DEV_EMMC}" of="${MYBOX_UBOOT}" bs=1M count=4 conv=fsync
-    [[ "${?}" -eq "0" ]] || error_msg "Using dd to backup [ ${MYBOX_UBOOT} ] failed."
+    if [[ ! -f "${MYBOX_UBOOT}" ]]; then
+        echo -e "${INFO} Start backing up the default bootloader."
+        dd if="${DEV_EMMC}" of="${MYBOX_UBOOT}" bs=1M count=4 conv=fsync
+        [[ "${?}" -eq "0" ]] || error_msg "Using dd to backup [ ${MYBOX_UBOOT} ] failed."
+    else
+        MAGIC_SIG="$(head -c 512 "${MYBOX_UBOOT}" 2>/dev/null | tail -c 2 | hexdump -e '1/1 "%02x"' 2>/dev/null || true)"
+        if [[ "${MAGIC_SIG}" != "55aa" ]]; then
+            echo -e "${INFO} Existing backup is invalid (No 55aa signature). Re-backing up..."
+            dd if="${DEV_EMMC}" of="${MYBOX_UBOOT}" bs=1M count=4 conv=fsync
+            [[ "${?}" -eq "0" ]] || error_msg "Using dd to backup [ ${MYBOX_UBOOT} ] failed."
+        else
+            echo -e "${INFO} Bootloader backup file [ ${MYBOX_UBOOT} ] already exists."
+        fi
+    fi
 
     # Clear emmc disk data
     exists_pts="$(parted ${DEV_EMMC} print 2>/dev/null | grep 'primary' | wc -l)"
@@ -352,7 +362,6 @@ create_partition() {
             ((i++))
         done
     fi
-    #dd if=/dev/zero of=${DEV_EMMC} bs=512 count=1 conv=fsync
 
     # Use the ampart partition tool
     AMPART_STATUS="no"
@@ -413,7 +422,7 @@ create_partition() {
     fi
 
     # Format emmc disk
-    echo -e "${INFO} Start create MBR and partittion."
+    echo -e "${INFO} Start create MBR and partition."
     parted -s "${DEV_EMMC}" mklabel msdos
     parted -s "${DEV_EMMC}" mkpart primary fat32 $((BLANK1))MiB $((BLANK1 + BOOT - 1))MiB
     parted -s "${DEV_EMMC}" mkpart primary ${file_system_type} $((BLANK1 + BOOT + BLANK2))MiB 100%
@@ -444,7 +453,7 @@ copy_bootfs() {
     PART_BOOT="${DEV_EMMC}p1"
 
     if grep -q ${PART_BOOT} /proc/mounts; then
-        echo -e "${INFO} Unmounting BOOT partiton."
+        echo -e "${INFO} Unmounting BOOT partition."
         umount -f ${PART_BOOT}
         [[ "${?}" -eq "0" ]] || error_msg "Failed to umount [ ${PART_BOOT} ]."
     fi
@@ -514,7 +523,7 @@ copy_rootfs() {
     PART_ROOT="${DEV_EMMC}p2"
 
     if grep -q ${PART_ROOT} /proc/mounts; then
-        echo -e "${INFO} Unmounting ROOT partiton."
+        echo -e "${INFO} Unmounting ROOT partition."
         umount -f ${PART_ROOT}
         [[ "${?}" -eq "0" ]] || error_msg "Failed to umount [ ${PART_ROOT} ]."
     fi
