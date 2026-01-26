@@ -18,6 +18,7 @@ on:
         options:
           - unifreq
           - ophub
+          - 6LWa6ZKx
       kernel_version:
         description: "Select kernel version"
         required: false
