@@ -9411,8 +9411,8 @@ CONFIG_SUSPEND=y
 CONFIG_PM_SLEEP=y
 CONFIG_HIBERNATION=y
 
-# CPU电源管理（保持现有并添加）
-CONFIG_CPU_IDLE_MULTIPLE_DRIVERS=y
+
+# CPU空闲管理（已有CONFIG_CPU_IDLE_MULTIPLE_DRIVERS=y在534行，此处添加governor）
 CONFIG_CPU_IDLE_GOV_MENU=y
 
 # ============================================
@@ -9423,8 +9423,10 @@ CONFIG_RTC_WAKEUP_CLIENT=y
 # ============================================
 # 网络唤醒（WOL）相关
 # ============================================
-CONFIG_DWMAC_SOCFPGA=y
 CONFIG_AMLOGIC_DWMAC=y
+# 网络唤醒支持
+CONFIG_STMMAC_WOL=y           # STMMAC驱动的WOL支持（Amlogic使用STMMAC控制器）
+CONFIG_REALTEK_PHY=y          # 如果使用Realtek PHY芯片
 
 # ============================================
 # Amlogic特定配置
