@@ -106,6 +106,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Display build parameters
+        run: |
+          echo "=========================================="
+          echo "📦 Build Configuration Parameters"
+          echo "=========================================="
+          echo "OS Release: ${{ inputs.set_release }}"
+          echo "Board: ${{ inputs.armbian_board }}"
+          echo "Kernel Version: ${{ inputs.armbian_kernel }}"
+          echo "Kernel Repository: ${{ inputs.kernel_repo }}"
+          echo "Kernel Usage Tag: ${{ inputs.kernel_usage }}"
+          echo "Auto Kernel: ${{ inputs.auto_kernel }}"
+          echo "Filesystem Type: ${{ inputs.armbian_fstype }}"
+          echo "Edition Type: ${{ inputs.armbian_edition }}"
+          echo "Builder Name: ${{ inputs.builder_name }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "=========================================="
+
       - name: Initialization environment
         id: init
         env:
@@ -159,7 +176,7 @@ jobs:
           df -hT ${PWD}
           git clone -q --single-branch --depth=1 --branch=main https://github.com/armbian/build.git build
           ln -sf /builder/build ${{ github.workspace }}/build
-          ln -sf /builder/build /home/runner/work/_actions/6LWa6ZKx/amlogic-s9xxx-armbian/main/build
+          ln -sf /builder/build /home/runner/work/_actions/${{ github.repository }}/main/build
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Compile Armbian [ ${{ inputs.set_release }} ]
@@ -203,19 +220,50 @@ jobs:
           makeLatest: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      # ============================================================================
+      # Rebuild Armbian - 核心步骤：将通用 Armbian 改造为设备专用镜像
+      # ============================================================================
+      # 这个步骤会调用 action.yml (第121-233行) 执行以下操作：
+      #
+      # 1. 准备阶段 (action.yml 第136-172行)：
+      #    - 解压上一步生成的 Armbian 镜像文件
+      #    - 检查镜像文件格式和名称
+      #
+      # 2. 构建命令 (action.yml 第207-215行)：
+      #    将你的输入参数转换为命令行参数，构建类似这样的命令：
+      #    sudo ./rebuild -b s905x3 -r 6LWa6ZKx/amlogic-s9xxx-armbian -u stable \
+      #                   -k 6.6.y -a true -t ext4 -n 6LWa6ZKx
+      #
+      # 3. 执行核心脚本 (action.yml 第217行)：
+      #    sudo ./rebuild [参数]
+      #    ↓
+      #    这会调用仓库根目录的 rebuild 脚本，该脚本执行：
+      #    - 从 kernel_repo 下载指定版本的内核 (从你的 GitHub Releases)
+      #    - 挂载镜像，替换内核文件
+      #    - 根据 armbian_board 添加对应设备的 DTB/U-Boot 文件
+      #    - 注入盒子专用脚本 (armbian-install, armbian-update 等)
+      #    - 写入系统信息到 /etc/ophub-release
+      #    - 生成多个设备专用镜像
+      #
+      # 4. 输出结果 (action.yml 第226-232行)：
+      #    设置环境变量供后续步骤使用：
+      #    - PACKAGED_OUTPUTPATH: 输出目录路径
+      #    - PACKAGED_OUTPUTDATE: 打包时间
+      #    - PACKAGED_STATUS: 打包状态
+      # ============================================================================
       - name: Rebuild Armbian
         uses: 6LWa6ZKx/amlogic-s9xxx-armbian@main
         if: ${{ steps.clean.outputs.status == 'success' && !cancelled() }}
         with:
-          build_target: armbian
-          armbian_path: build/output/images/*.img.gz
-          armbian_board: ${{ inputs.armbian_board }}
-          armbian_kernel: ${{ inputs.armbian_kernel }}
-          auto_kernel: ${{ inputs.auto_kernel }}
-          kernel_repo: ${{ inputs.kernel_repo }}
-          kernel_usage: ${{ inputs.kernel_usage }}
-          armbian_fstype: ${{ inputs.armbian_fstype }}
-          builder_name: ${{ inputs.builder_name }}
+          build_target: armbian                         # 构建目标：armbian 或 kernel
+          armbian_path: build/output/images/*.img.gz    # 输入：上一步编译的通用镜像
+          armbian_board: ${{ inputs.armbian_board }}    # 要打包的设备列表 (如: s905x3_s922x)
+          armbian_kernel: ${{ inputs.armbian_kernel }}  # 内核版本 (如: 6.6.y_6.12.y)
+          auto_kernel: ${{ inputs.auto_kernel }}        # 是否自动使用最新内核
+          kernel_repo: ${{ inputs.kernel_repo }}        # ⭐ 内核下载仓库 (重要！从这里下载内核)
+          kernel_usage: ${{ inputs.kernel_usage }}      # 内核标签 (stable/flippy/beta)
+          armbian_fstype: ${{ inputs.armbian_fstype }}  # 文件系统类型 (ext4/btrfs)
+          builder_name: ${{ inputs.builder_name }}      # 构建者签名 (写入 /etc/ophub-release)
 
       - name: Upload Rebuild image to Release
         uses: ncipollo/release-action@main
